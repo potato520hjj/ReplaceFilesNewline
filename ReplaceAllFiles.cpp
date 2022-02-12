@@ -21,6 +21,7 @@ void ReplaceAndSave(const fs::path& path) {
 	//}
 	const auto& filePath = path.string();
 	auto pFile = fopen(filePath.c_str(), "rb");
+	bool fail = false;
 	if (nullptr != pFile) {
 		//read file
 		fseek(pFile, 0L, SEEK_END);
@@ -63,26 +64,46 @@ void ReplaceAndSave(const fs::path& path) {
 				fwrite(buffStr.c_str(), sizeof(char), buffStr.size(), pFile);
 				fclose(pFile);
 				std::lock_guard<std::mutex> guard(gMutexCout);
-				std::cout << path << std::endl;
+				std::cout << "Fix: " <<  path << std::endl;
+			}
+			else {
+				fail = true;
 			}
 		}
 	}
+	else {
+		fail = true;
+	}
+
+	if (fail) {
+		std::lock_guard<std::mutex> guard(gMutexCout);
+		std::cout << "Fail: " << path << std::endl;
+	}
+
 }
 int main()
 {
 	//std::cout << "Main Thread ID: " << std::this_thread::get_id() << std::endl;
     auto path = "./";
     std::error_code err;
-	ThreadPool pool;
-
+	std::vector<fs::path> files;
+	std::vector<std::thread> pool;
     for (auto& file : fs::recursive_directory_iterator(path, err)) {
         if (file.status(err).type() == fs::file_type::regular && file.exists(err)) {
             const auto& path = file.path();
             const auto& ex = path.extension();
             if (ex == ".h" || ex == ".cpp" || ex == ".hpp") {
-				pool.enqueue(ReplaceAndSave, path);
+				files.emplace_back(path);
             }
         }
     }
 	
+	std::cout << "Files(*.h; *.cpp; *.hpp): " << files.size() << std::endl;
+
+	for (const auto& it : files) {
+		pool.emplace_back(ReplaceAndSave, it);
+	}
+	for (auto& it : pool) {
+		it.join();
+	}
 }
