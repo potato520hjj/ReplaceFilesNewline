@@ -92,13 +92,13 @@ int main()
         if (file.status(err).type() == fs::file_type::regular && file.exists(err)) {
             const auto& path = file.path();
             const auto& ex = path.extension();
-            if (ex == ".h" || ex == ".cpp" || ex == ".hpp") {
+            if (ex == ".h" || ex == ".cpp" || ex == ".hpp" || ex == ".cc") {
 				files.emplace_back(path);
             }
         }
     }
 	
-	std::cout << "Files(*.h; *.cpp; *.hpp): " << files.size() << std::endl;
+	std::cout << "Files(*.h; *.cpp; *.hpp; *.cc): " << files.size() << std::endl;
 
 	for (const auto& it : files) {
 		pool.emplace_back(ReplaceAndSave, it);
